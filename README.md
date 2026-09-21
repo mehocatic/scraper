@@ -74,6 +74,24 @@ JavaScript: Node.js built-in `fetch`, [Cheerio](https://cheerio.js.org/) for HTM
 
 ## Sample run report
 
+First run on a fresh clone (no cache, 63 real requests):
+
+```json
+{
+	"started_at": "2026-09-21T13:00:40.668Z",
+	"finished_at": "2026-09-21T13:01:18.439Z",
+	"duration_ms": 37771,
+	"catalogue_pages": 3,
+	"unique_urls": 60,
+	"pages_fetched": 63,
+	"cache_hits": 0,
+	"valid_records": 60,
+	"invalid_records": 0,
+	"failed_pages": 0,
+	"failures": []
+}
+```
+
 Clean run (from cache):
 
 ```json
