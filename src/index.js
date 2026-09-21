@@ -1,5 +1,5 @@
 import { getPage } from "./fetcher.js";
-import { parseCatalogue } from "./parser.js";
+import { parseCatalogue, parseBook } from "./parser.js";
 
 const START_URL = "https://books.toscrape.com/catalogue/page-1.html";
 const MAX_PAGES = 3;
@@ -39,7 +39,17 @@ async function main() {
 		`catalogue_pages=${pages} discovered=${discovered} unique_urls=${sourceOf.size}`,
 	);
 
-	console.log([...sourceOf.keys()].slice(0, 3));
+	let detailPages = 0;
+
+	for (const [url, sourcePage] of sourceOf) {
+		const { html, fetchedAt } = await getPage(url);
+		const raw = parseBook(html, { productUrl: url, sourcePage, fetchedAt });
+		detailPages++;
+
+		if (detailPages === 1) console.log(raw);
+	}
+
+	console.log(`detail_pages=${detailPages}`);
 }
 
 main();
