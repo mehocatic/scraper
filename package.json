@@ -7,7 +7,7 @@
 		"test:broken": "node src/index.js --test-broken"
 	},
 	"dependencies": {
-		"cheerio": "...",
-		"zod": "..."
+		"cheerio": "^1.2.0",
+		"zod": "^4.6.5"
 	}
 }
