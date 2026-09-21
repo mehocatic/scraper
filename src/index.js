@@ -1,5 +1,8 @@
+import fs from "node:fs/promises";
 import { getPage } from "./fetcher.js";
 import { parseCatalogue, parseBook } from "./parser.js";
+import { normalize } from "./normalize.js";
+import { BookSchema } from "./schema.js";
 
 const START_URL = "https://books.toscrape.com/catalogue/page-1.html";
 const MAX_PAGES = 3;
@@ -39,6 +42,8 @@ async function main() {
 		`catalogue_pages=${pages} discovered=${discovered} unique_urls=${sourceOf.size}`,
 	);
 
+	const books = new Map();
+	const errors = [];
 	let detailPages = 0;
 
 	for (const [url, sourcePage] of sourceOf) {
@@ -46,10 +51,32 @@ async function main() {
 		const raw = parseBook(html, { productUrl: url, sourcePage, fetchedAt });
 		detailPages++;
 
-		if (detailPages === 1) console.log(raw);
+		const record = normalize(raw);
+
+		const result = BookSchema.safeParse(record);
+		if (result.success) {
+			books.set(url, result.data);
+		} else {
+			errors.push({
+				product_url: url,
+				reason: result.error.issues
+					.map((i) => `${i.path.join(".")}: ${i.message}`)
+					.join("; "),
+				record,
+			});
+		}
 	}
 
-	console.log(`detail_pages=${detailPages}`);
+	console.log(
+		`detail_pages=${detailPages} valid=${books.size} invalid=${errors.length}`,
+	);
+
+	await fs.mkdir("output", { recursive: true });
+	await fs.writeFile(
+		"output/books.json",
+		JSON.stringify([...books.values()], null, 2),
+	);
+	await fs.writeFile("output/errors.json", JSON.stringify(errors, null, 2));
 }
 
 main();
