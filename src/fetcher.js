@@ -5,14 +5,13 @@ const USER_AGENT =
 	"FlyRankInternshipA9/1.0 (+https://github.com/mehocatic/scraper)";
 const TIMEOUT_MS = 10_000;
 const DELAY_MS = 600;
+const RETRY_WAIT_MS = 2000;
 const CACHE_DIR = "cache";
 
 export const stats = { pagesFetched: 0, cacheHits: 0 };
 
 const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
-// Pamtimo vrijeme zadnjeg STVARNOG requesta i čekamo samo koliko treba.
-// Cache hitovi ne prolaze kroz ovo jer ne idu na server.
 let lastRequestAt = 0;
 async function politeWait() {
 	const elapsed = Date.now() - lastRequestAt;
@@ -40,6 +39,21 @@ async function fetchOnce(url) {
 	return res.text();
 }
 
+function isRetryable(err) {
+	return err.name === "TimeoutError" || (err.status >= 500 && err.status < 600);
+}
+
+async function fetchWithRetry(url) {
+	try {
+		return await fetchOnce(url);
+	} catch (err) {
+		if (!isRetryable(err)) throw err;
+		console.warn(`RETRY ${url} (${err.message})`);
+		await sleep(RETRY_WAIT_MS);
+		return fetchOnce(url);
+	}
+}
+
 export async function getPage(url) {
 	const file = cacheFileFor(url);
 
@@ -55,7 +69,7 @@ export async function getPage(url) {
 		if (err.code !== "ENOENT") throw err;
 	}
 
-	const html = await fetchOnce(url);
+	const html = await fetchWithRetry(url);
 	await fs.mkdir(CACHE_DIR, { recursive: true });
 	await fs.writeFile(file, html, "utf8");
 	stats.pagesFetched++;
